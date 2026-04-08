@@ -563,7 +563,7 @@ select.fi option{background:var(--bg);color:var(--txt)}
   <div class="mfoot"><button class="mbtn s" onclick="cm('mo-scan')">Fermer</button></div>
 </div></div>
 
-<div class="toast" id="toast"></div>
+<div id="toast-msg" class="toast"></div>
 
 <script>
 const SB_URL='https://qqcfmbpixdeiczobqnqa.supabase.co';
@@ -1497,6 +1497,14 @@ function sw(id) {
   if (id === 'immersion') renderImmersion();
   if (id === 'caisse') renderCaisse();
   if (id === 'clients') renderClients();
+}
+
+function toast(msg, type='') {
+  const t = document.getElementById('toast-msg'); // Changé ici
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast on ' + type;
+  setTimeout(() => t.classList.remove('on'), 3000);
 }
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){o.classList.add('h');if(o.id==='mo-scan')stopScanner();}}));
 
