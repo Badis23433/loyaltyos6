@@ -1506,6 +1506,16 @@ function toast(msg, type='') {
   t.className = 'toast on ' + type;
   setTimeout(() => t.classList.remove('on'), 3000);
 }
+
+function cm(id) {
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.add('h'); // 'h' correspond à la classe qui cache l'élément (display: none)
+  }
+  if (id === 'mo-scan') {
+    stopScanner(); // Arrête la caméra si on ferme la fenêtre de scan
+  }
+}
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){o.classList.add('h');if(o.id==='mo-scan')stopScanner();}}));
 
 init();
