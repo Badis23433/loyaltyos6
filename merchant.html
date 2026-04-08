@@ -1482,7 +1482,22 @@ function fd(iso) {
   if (diff === 1) return 'Hier';
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
+function sw(id) {
+  // Masquer tous les panneaux
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  // Gérer l'état actif des onglets de navigation
+  document.querySelectorAll('.ntab').forEach((t, i) => {
+    t.classList.toggle('on', ['dashboard','immersion','caisse','wallet','clients','notifs','rewards'][i] === id);
+  });
+  // Afficher le panneau sélectionné
+  const target = document.getElementById('p-' + id);
+  if (target) target.classList.add('on');
   
+  // Lancer les rendus spécifiques
+  if (id === 'immersion') renderImmersion();
+  if (id === 'caisse') renderCaisse();
+  if (id === 'clients') renderClients();
+}
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){o.classList.add('h');if(o.id==='mo-scan')stopScanner();}}));
 
 init();
