@@ -1188,7 +1188,8 @@ async function openScanner(mode='pay'){
   // Critical wait: let the browser paint the modal (2 animation frames + margin)
   await new Promise(r => requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,150))));
   await startScanner();
- async function startScanner() {
+ 
+async function startScanner() {
     const readerId = "qr-reader";
 
     const html5QrCode = new Html5Qrcode(readerId);
