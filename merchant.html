@@ -1188,29 +1188,50 @@ async function openScanner(mode='pay'){
   // Critical wait: let the browser paint the modal (2 animation frames + margin)
   await new Promise(r => requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,150))));
   await startScanner();
-}
-async function startScanner(){
-  await stopScanner();
-  if(!window.Html5Qrcode){
-    setScanStatus('Librairie scanner non chargée. Utilisez la saisie manuelle.','err');
-    document.getElementById('scanner-reader').innerHTML='<div style="color:#fff;opacity:.7;font-size:12px;text-align:center;padding:24px">Scanner non disponible.<br>Entrez le code manuellement.</div>';
-    return;
+ async function startScanner() {
+    const readerId = "qr-reader";
+
+    const html5QrCode = new Html5Qrcode(readerId);
+
+    try {
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: 250,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13
+          ]
+        },
+        async (decodedText) => {
+          console.log("SCANNÉ :", decodedText);
+
+          const code = decodedText.trim();
+
+          const { data, error } = await sb
+            .from("clients")
+            .select("*")
+            .eq("card_id", code)
+            .maybeSingle();
+
+          if (!data) {
+            alert("Carte inconnue ❌");
+            return;
+          }
+
+          alert("Client trouvé ✅ : " + data.name);
+
+          await html5QrCode.stop();
+        },
+        (err) => {}
+      );
+    } catch (e) {
+      console.error("Erreur caméra :", e);
+      alert("Impossible d'accéder à la caméra");
+    }
   }
-  scannerInstance=new Html5Qrcode('scanner-reader');
-  // FIX: déclarer CODE_128 explicitement — sans ça html5-qrcode ignore tous les codes 1D
-  const formats=window.Html5QrcodeSupportedFormats
-    ?[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.QR_CODE]
-    :[6,0]; // 6=CODE_128, 0=QR_CODE (valeurs numériques de secours)
-  const config={
-    fps:15,
-    qrbox:{width:280,height:80},
-    formatsToSupport:formats
-  };
-  const onSuccess=async(decodedText)=>{
-    if(Date.now()-lastScanAt<1800)return;
-    lastScanAt=Date.now();
-    await resolveScannedClient(decodedText);
-  };
   // Try rear camera (mobile), fallback to any camera (desktop/tablet)
   try{
     await scannerInstance.start({facingMode:'environment'},config,onSuccess,()=>{});
