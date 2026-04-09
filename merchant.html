@@ -1197,7 +1197,8 @@ async function startScanner(){
     return;
   }
   scannerInstance=new Html5Qrcode('scanner-reader');
-  const config={fps:12,qrbox:{width:240,height:160}};
+  const formats = [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.QR_CODE];
+  const config = {fps:15, qrbox:{width:280, height:80}, formatsToSupport:formats};
   const onSuccess=async(decodedText)=>{
     if(Date.now()-lastScanAt<1800)return;
     lastScanAt=Date.now();
