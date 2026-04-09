@@ -1272,6 +1272,17 @@ async function stopScanner(){
   const readerEl=document.getElementById('scanner-reader');
   if(readerEl)readerEl.innerHTML='';
 }
+async function stopScanner() {
+  if (scannerInstance && scannerActive) {
+    try {
+      await scannerInstance.stop();
+      scannerActive = false;
+      console.log("Scanner arrêté avec succès.");
+    } catch (err) {
+      console.warn("Note: Arrêt forcé ou déjà arrêté.");
+    }
+  }
+}
 async function resolveScannedClient(raw){
   const parsed=parseScanPayload(raw);
   if(!parsed){setScanStatus('Code non reconnu.','err');return;}
