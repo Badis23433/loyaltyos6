@@ -1183,48 +1183,94 @@ async function openScanner(mode='pay'){
   document.getElementById('scan-manual').value='';
   document.getElementById('scanner-reader').innerHTML='<div style="color:#fff;opacity:.65;font-size:12px;text-align:center">Initialisation caméra...</div>';
   setScanStatus(mode==='reward'?'Préparez la carte du client.':'Présentez le code-barres ou QR du client.');
-  
-  // Afficher la modale EN PREMIER
+  // Show modal FIRST — browser must render the element before Html5Qrcode can measure it
   document.getElementById('mo-scan').classList.remove('h');
+  // Critical wait: let the browser paint the modal (2 animation frames + margin)
   await new Promise(r => requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,150))));
+  await startScanner();
+ 
+async function startScanner() {
+    const readerId = "qr-reader";
 
-  // CORRECTION : On utilise le bon ID ("scanner-reader")
-  const readerId = "scanner-reader";
-  
-  // On instancie dans la variable globale scannerInstance pour que stopScanner() fonctionne toujours
-  if (!scannerInstance) {
-    scannerInstance = new Html5Qrcode(readerId);
+    const html5QrCode = new Html5Qrcode(readerId);
+
+    try {
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: 250,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13
+          ]
+        },
+        async (decodedText) => {
+          console.log("SCANNÉ :", decodedText);
+
+          const code = decodedText.trim();
+
+          const { data, error } = await sb
+            .from("clients")
+            .select("*")
+            .eq("card_id", code)
+            .maybeSingle();
+
+          if (!data) {
+            alert("Carte inconnue ❌");
+            return;
+          }
+
+          alert("Client trouvé ✅ : " + data.name);
+
+          await html5QrCode.stop();
+        },
+        (err) => {}
+      );
+    } catch (e) {
+      console.error("Erreur caméra :", e);
+      alert("Impossible d'accéder à la caméra");
+    }
   }
-
-  try {
-    await scannerInstance.start(
-      { facingMode: "environment" },
-      {
-        fps: 10,
-        qrbox: 250,
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.EAN_13
-        ]
-      },
-      async (decodedText) => {
-        console.log("SCANNÉ :", decodedText);
-        // On redirige directement vers votre fonction de résolution existante
-        resolveScannedClient(decodedText);
-      },
-      (err) => {
-        // Ignorer les erreurs de lecture à chaque frame (normal quand aucun QR n'est en face)
-      }
-    );
-    scannerActive = true;
+  // Try rear camera (mobile), fallback to any camera (desktop/tablet)
+  try{
+    await scannerInstance.start({facingMode:'environment'},config,onSuccess,()=>{});
+    scannerActive=true;
     setScanStatus('✓ Caméra active — présentez le code-barres du client.');
-  } catch (e) {
-    console.error("Erreur caméra :", e);
-    scannerActive = false;
-    document.getElementById('scanner-reader').innerHTML='<div style="color:#fff;opacity:.75;font-size:12px;text-align:center;padding:28px;line-height:1.6">Accès caméra refusé ou aucune caméra détectée.<br><br>Entrez le code-barres manuellement ci-dessous.</div>';
-    setScanStatus('Caméra indisponible — saisie manuelle disponible ci-dessous.','err');
+  }catch(e1){
+    try{
+      await scannerInstance.start({facingMode:'user'},config,onSuccess,()=>{});
+      scannerActive=true;
+      setScanStatus('✓ Caméra active — présentez le code-barres du client.');
+    }catch(e2){
+      // Last resort: try without constraint (lets browser pick any camera)
+      try{
+        const cameras=await Html5Qrcode.getCameras();
+        if(cameras&&cameras.length>0){
+          await scannerInstance.start(cameras[0].id,config,onSuccess,()=>{});
+          scannerActive=true;
+          setScanStatus('✓ Caméra active.');
+        }else throw new Error('no cameras');
+      }catch(e3){
+        scannerActive=false;
+        scannerInstance=null;
+        document.getElementById('scanner-reader').innerHTML='<div style="color:#fff;opacity:.75;font-size:12px;text-align:center;padding:28px;line-height:1.6">Accès caméra refusé ou aucune caméra détectée.<br><br>Entrez le code-barres manuellement ci-dessous.</div>';
+        setScanStatus('Caméra indisponible — saisie manuelle disponible ci-dessous.','err');
+      }
+    }
   }
+}
+async function stopScanner(){
+  if(!scannerInstance)return;
+  const current=scannerInstance;
+  scannerInstance=null;
+  scannerActive=false;
+  if(scannerActive||true){try{await current.stop();}catch(e){}}
+  try{await current.clear();}catch(e){}
+  // Clear the reader div to remove orphaned video elements
+  const readerEl=document.getElementById('scanner-reader');
+  if(readerEl)readerEl.innerHTML='';
 }
 async function resolveScannedClient(raw){
   const parsed=parseScanPayload(raw);
