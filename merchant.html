@@ -542,6 +542,7 @@ const defaultMerchantConfig={pts_min:1,pts_max:5000,welcome_bonus:0,bonus_thresh
 
 let mid=null,mData=null,_clients=[],_txns=[],_rewards=[];
 let cardColor='#1C1C1E',payAmt=0,cdId=null,scannerMode='pay',scannerInstance=null,scannerActive=false,lastScanAt=0,selectedCheckoutId=null;
+let isScannerTransitioning = false;
 
 function cfgKey(id){return`merchant_cfg_${id}`;}
 function toInt(v,f=0){const n=parseInt(v,10);return Number.isFinite(n)?n:f;}
@@ -1177,7 +1178,6 @@ function parseScanPayload(raw){
   if(/^[0-9a-f-]{36}$/i.test(value))return{clientId:value};
   return{cardCode:value.toUpperCase()};
 }
-let isScannerTransitioning = false;
 async function openScanner(mode='pay'){
   scannerMode=mode;
   document.getElementById('scan-title').textContent=mode==='reward'?'Scanner pour attribuer une récompense':'Scanner une carte client';
