@@ -1177,6 +1177,7 @@ function parseScanPayload(raw){
   if(/^[0-9a-f-]{36}$/i.test(value))return{clientId:value};
   return{cardCode:value.toUpperCase()};
 }
+let isScannerTransitioning = false;
 async function openScanner(mode='pay'){
   scannerMode=mode;
   document.getElementById('scan-title').textContent=mode==='reward'?'Scanner pour attribuer une récompense':'Scanner une carte client';
@@ -1271,17 +1272,6 @@ async function stopScanner(){
   // Clear the reader div to remove orphaned video elements
   const readerEl=document.getElementById('scanner-reader');
   if(readerEl)readerEl.innerHTML='';
-}
-async function stopScanner() {
-  if (scannerInstance && scannerActive) {
-    try {
-      await scannerInstance.stop();
-      scannerActive = false;
-      console.log("Scanner arrêté avec succès.");
-    } catch (err) {
-      console.warn("Note: Arrêt forcé ou déjà arrêté.");
-    }
-  }
 }
 async function resolveScannedClient(raw){
   const parsed=parseScanPayload(raw);
